@@ -9,7 +9,7 @@ from PIL import Image, ImageTk
 from drawing import generate_timer
 from pathlib import Path
 
-bundle_dir = Path(__file__).parent
+bundle_dir = Path(__file__).parent if "exe" in __file__ else Path(__file__).parent.parent.parent
 resourcepath = Path.cwd() / bundle_dir / "resources"
 
 
