@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "project0003"
+version = "0.1.0"
+description = ""
+authors = ["Kil'jaeden <lordtgm@gmail.com>"]
+packages = [
+    { include = "main", from = "src/python" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pillow = "^10.3.0"
+
+[tool.poetry-pyinstaller-plugin.scripts]
+my-api = { source = "src/python/main/main.py", type = "onefile", bundle = true , windowed = true, name = "ANS" }
+
+[tool.poetry-pyinstaller-plugin.collect]
+data = ["src/resources;resources"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
