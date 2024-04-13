@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import contextlib
 import os
-from tkinter import Event, TclError, Tk, Toplevel
-from tkinter.messagebox import showerror
-from tkinter.ttk import Button, Entry, Frame, Label, Spinbox, Style
-from PIL import Image, ImageTk
-from drawing import generate_timer
 from pathlib import Path
+from tkinter import Event, TclError, Tk, Toplevel
+from tkinter.messagebox import askokcancel, showerror
+from tkinter.ttk import Button, Entry, Frame, Label, Spinbox, Style
+from awesometkinter.bidirender import add_bidi_support, render_text
 
-bundle_dir = Path(__file__).parent if "exe" in __file__ else Path(__file__).parent.parent.parent
+from PIL import Image, ImageTk
+
+from drawing import generate_timer
+
+bundle_dir = Path(__file__).parent if "Temp" in __file__ else Path(__file__).parent.parent.parent
 resourcepath = Path.cwd() / bundle_dir / "resources"
 
 
@@ -37,19 +40,14 @@ class Settings:
         self.frame = Frame(self.root)
         self.frame.grid()
 
-        self.label = Label(self.frame, text="Enter time and title", font=("Lava Arabic", 20))
+        self.label = Label(self.frame, text="Enter time and title", font=("Stencil", 20), foreground="#FFFFFF")
         self.label.grid(column=0, row=0, columnspan=3)
 
-        self.hours_label = Label(self.frame, text="Hours", font=("Lava Arabic", 20))
-        self.hours_label.grid(column=0, row=1)
-        self.minutes_label = Label(self.frame, text="Minutes", font=("Lava Arabic", 20))
+        self.minutes_label = Label(self.frame, text="Minutes", font=("Stencil", 20), foreground="#FFFFFF")
         self.minutes_label.grid(column=1, row=1)
-        self.seconds_label = Label(self.frame, text="Seconds", font=("Lava Arabic", 20))
+        self.seconds_label = Label(self.frame, text="Seconds", font=("Stencil", 20), foreground="#FFFFFF")
         self.seconds_label.grid(column=2, row=1)
 
-        self.hours = Spinbox(self.frame, from_=0, to=11, width=5)
-        self.hours.set(0)
-        self.hours.grid(column=0, row=2)
         self.minutes = Spinbox(self.frame, from_=0, to=59, width=5)
         self.minutes.set(0)
         self.minutes.grid(column=1, row=2)
@@ -57,7 +55,8 @@ class Settings:
         self.seconds.set(0)
         self.seconds.grid(column=2, row=2)
 
-        self.title = Entry(self.frame, font=("Lava Arabic", 15))
+        self.title = Entry(self.frame, font=("IRPooya", 15), justify="right")
+        add_bidi_support(self.title)
         self.title.configure()
         self.title.grid(column=0, row=3, columnspan=2)
 
@@ -65,16 +64,18 @@ class Settings:
         self.ok_button.grid(column=2, row=3)
 
     def ok(self):
-        time = int(self.hours.get()) * 3600 + int(self.minutes.get()) * 60 + int(self.seconds.get())
-        if time > 0 and self.title.get() != "":
+        time = int(self.minutes.get()) * 60 + int(self.seconds.get())
+        if 3600 > time > 0 and self.title.get() != "":
             self.app.total_time = time
             self.app.current_time = 0
             self.app.update_time()
             self.app.title.configure(text=self.title.get())
+            self.app.root.update()
             self.close()
             return True
         else:
-            showerror("Invalid input", "Invalid input. make sure time is not 0 and title is not blank")
+            showerror("Invalid input",
+                      "Invalid input. make sure time is between 00:01 and 59:59 and title is not blank")
             return False
 
     def close(self):
@@ -104,15 +105,18 @@ class App:
 
         self.load_extrafont()
         self.frame = Frame(self.root)
-        self.frame.grid_configure()
+        self.frame.grid_configure(column=0, row=1)
 
         self.root.tk.call("extrafont::load", resourcepath / "Lava.ttf")
+        self.root.tk.call("extrafont::load", resourcepath / "IRPooya.ttf")
 
-        self.time_image = ImageTk.PhotoImage(generate_timer(1000, 800, 50, 36, 36).resize((75, 75)))
+        self.time_image = ImageTk.PhotoImage(generate_timer(800, 600, 50, 36, 36, False).resize((75, 75)))
+        self.blink_on = ImageTk.PhotoImage(generate_timer(800, 600, 50, 36, 36, True).resize((75, 75)))
+        self.blink_off = ImageTk.PhotoImage(generate_timer(800, 600, 50, 36, 0, True).resize((75, 75)))
         self.time = Label(self.frame, image=self.time_image)
         self.time.grid(column=0, row=0, columnspan=3, rowspan=3)
 
-        self.time_text = Label(self.frame, text="00:00:00", font=("Lava Arabic", 15))
+        self.time_text = Label(self.frame, text="00:00", font=("Lava Arabic", 20), foreground="#FFFFFF")
         self.time_text.grid(column=0, row=0, columnspan=3, rowspan=3)
 
         self.pause_image = ImageTk.PhotoImage(Image.open(resourcepath / "pause.png").resize((50, 50)))
@@ -124,8 +128,9 @@ class App:
         self.settings = Button(self.frame, image=self.gear_image, command=self.settings, style="TLabel")
         self.settings.grid(column=5, row=1)
 
-        self.title = Label(self.frame, text="Title", font=("Lava Arabic", 25))
-        self.title.grid(column=6, row=1)
+        self.title = Label(self.frame, text="Title", font=("IRPooya", 25), foreground="#FFFFFF", justify='right')
+        add_bidi_support(self.title)
+        self.title.grid(column=6, row=1, padx=(25, 25))
 
         self.ans_image = ImageTk.PhotoImage(Image.open(resourcepath / "ans.png").resize((50, 50)))
         self.ans = Label(self.frame, image=self.ans_image)
@@ -135,22 +140,26 @@ class App:
         self.heart = Label(self.frame, image=self.heart_image)
         self.heart.grid(column=8, row=1)
 
+        self.root.update()
+
     def toggle(self):
         if self.running:
             self.pause()
-            self.toggle_button.configure(image=self.play_image)
         else:
             self.play()
-            self.toggle_button.configure(image=self.pause_image)
         self.toggle_button.update()
 
     def pause(self):
         self.running = False
+        self.toggle_button.configure(image=self.play_image)
+        self.settings.state(["!disabled"])
 
     def play(self):
         if self.current_time >= self.total_time:
             self.current_time = 0
         self.running = True
+        self.toggle_button.configure(image=self.pause_image)
+        self.settings.state(["disabled"])
         self.run()
 
     def run(self):
@@ -168,12 +177,15 @@ class App:
         Settings(self)
 
     def update_time(self):
-        self.time_image = ImageTk.PhotoImage(
-            generate_timer(100, 80, 5, 36, 36 - (self.current_time * 36 // self.total_time)).resize((75, 75)))
-        self.time.configure(image=self.time_image)
         remaining_time = self.total_time - self.current_time
-        self.time_text.configure(text=f"{str(remaining_time // 3600).zfill(2)}:"
-                                      f"{str(remaining_time % 3600 // 60).zfill(2)}:"
+        if remaining_time <= 60:
+            self.time_image = self.blink_on if remaining_time % 2 == 0 else self.blink_off
+        else:
+            self.time_image = ImageTk.PhotoImage(
+                generate_timer(800, 600, 50, 36, 36 - (self.current_time * 36 // self.total_time), False).resize(
+                    (75, 75)))
+        self.time.configure(image=self.time_image)
+        self.time_text.configure(text=f"{str(remaining_time % 3600 // 60).zfill(2)}:"
                                       f"{str(remaining_time % 60).zfill(2)}")
         self.time.update()
 
@@ -191,6 +203,9 @@ class App:
     def click(self, event: Event):
         self.click_x = event.x_root - self.root.winfo_rootx()
         self.click_y = event.y_root - self.root.winfo_rooty()
+        if self.root.winfo_width() - self.click_x < 20:
+            if askokcancel("Close", "Do you want to close the program?"):
+                self.root.destroy()
 
     def move(self, event: Event):
         self.root.wm_geometry("+".join([

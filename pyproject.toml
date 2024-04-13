@@ -10,6 +10,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.12"
 pillow = "^10.3.0"
+awesometkinter = "^2021.11.8"
 
 [tool.poetry-pyinstaller-plugin.scripts]
 my-api = { source = "src/python/main/main.py", type = "onefile", bundle = true}
